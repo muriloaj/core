@@ -156,6 +156,36 @@
 			this.enableActions();
 		},
 
+		/**
+		 * Event handler for when selecting/deselecting all files
+		 */
+		_onClickSelectAll: function(e) {
+			var checked = $(e.target).prop('checked');
+			this.$fileList.find('td.filename>.selectCheckBox').prop('checked', checked)
+				.closest('tr').toggleClass('selected', checked);
+			this._selectedFiles = {};
+			this._selectionSummary.clear();
+			if (checked) {
+				for (var i = 0; i < this.files.length; i++) {
+					/*
+					The selection is from trashbin we need to do update the
+					name of the files, i.e make the filenames real so that
+					its appended with '.d' + mtime/1000
+					*/
+					this.files[i].name = this.files[i].name + '.d' +
+						Math.floor(this.files[i].mtime/1000);
+					var fileData = this.files[i];
+					this._selectedFiles[fileData.id] = fileData;
+					this._selectionSummary.add(fileData);
+				}
+			}
+			this.updateSelectionSummary();
+			if (this._detailsView && !this._detailsView.$el.hasClass('disappear')) {
+				// hide sidebar
+				this._updateDetailsView(null);
+			}
+		},
+
 		_onClickRestoreSelected: function(event) {
 			event.preventDefault();
 			var self = this;
