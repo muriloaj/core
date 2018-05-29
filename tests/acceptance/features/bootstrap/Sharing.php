@@ -1167,7 +1167,7 @@ trait Sharing {
 	 * @return void
 	 */
 	public function userReactsToShareOfferedBy($user, $action, $share, $offeredBy) {
-		$dataResponded = $this->getAllShareSharedWithUser($user);
+		$dataResponded = $this->getAllSharesSharedWithUser($user);
 		$shareId = null;
 		foreach ($dataResponded as $shareElement) {
 			if ((string)$shareElement['uid_owner'] === $offeredBy
@@ -1213,7 +1213,7 @@ trait Sharing {
 	 * @return void
 	 */
 	public function assertSharesOfUserAreInState($user, $state, TableNode $table) {
-		$usersShares = $this->getAllShareSharedWithUser($user, $state);
+		$usersShares = $this->getAllSharesSharedWithUser($user, $state);
 		foreach ($table as $row) {
 			$found = false;
 			//the API returns the path without trailing slash, but we want to
@@ -1244,7 +1244,7 @@ trait Sharing {
 	 * @return void
 	 */
 	public function assertThatNoSharesAreSharedWithUser($user) {
-		$usersShares = $this->getAllShareSharedWithUser($user);
+		$usersShares = $this->getAllSharesSharedWithUser($user);
 		PHPUnit_Framework_Assert::assertEmpty(
 			$usersShares, "user has " . \count($usersShares) . " share(s)"
 		);
@@ -1260,7 +1260,7 @@ trait Sharing {
 	 *
 	 * @return array of shares that are shared with this user
 	 */
-	private function getAllShareSharedWithUser($user, $state = "all") {
+	private function getAllSharesSharedWithUser($user, $state = "all") {
 		switch ($state) {
 			case 'pending':
 				$stateCode = \OCP\Share::STATE_PENDING;
