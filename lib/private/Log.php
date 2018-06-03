@@ -401,6 +401,10 @@ class Log implements ILogger {
 	 * @since 8.2.0
 	 */
 	public function logException($exception, array $context = []) {
+		$context['extraFields'] = [
+			'originalException' => $exception,
+		];
+
 		$exception = [
 			'Exception' => get_class($exception),
 			'Message' => $exception->getMessage(),

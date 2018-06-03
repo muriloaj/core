@@ -280,4 +280,23 @@ class LoggerTest extends TestCase {
 		$this->assertEquals($expectedArgs, $beforeWriteEvent->getArguments(), 'before event arguments match');
 		$this->assertEquals($expectedArgs, $afterWriteEvent->getArguments(), 'after event arguments match');
 	}
+
+	public function testOriginalExceptionIsProvidedAsExtraField() {
+		$e = new \Exception('test');
+
+
+		$beforeWriteEvent = null;
+		$this->eventDispatcher->addListener(
+			'log.beforewrite',
+			function(GenericEvent $event) use (&$beforeWriteEvent) {
+				$beforeWriteEvent = $event;
+			}
+		);
+		$this->logger->logException($e);
+		$eventArguments = $beforeWriteEvent->getArguments();
+		$this->assertArrayHasKey('extraFields', $eventArguments, 'extra fields is set');
+		$extraFields = $eventArguments['extraFields'];
+		$this->assertArrayHasKey('originalException', $extraFields, 'extra field contains originalExceptionField');
+		$this->assertSame($e, $extraFields['originalException'], 'the original exception is passed');
+	}
 }
