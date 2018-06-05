@@ -32,11 +32,21 @@ interface ILockingProvider {
 	/**
 	 * @since 8.1.0
 	 */
-	const LOCK_SHARED = 1;
+	public const LOCK_SHARED = 1;
 	/**
 	 * @since 8.1.0
 	 */
-	const LOCK_EXCLUSIVE = 2;
+	public const LOCK_EXCLUSIVE = 2;
+
+	/**
+	 * @since 10.0.10
+	 */
+	public const LOCK_SHARED_PERSISTENT = 3;
+
+	/**
+	 * @since 10.0.10
+	 */
+	public const LOCK_EXCLUSIVE_PERSISTENT = 4;
 
 	/**
 	 * @param string $path
@@ -48,18 +58,21 @@ interface ILockingProvider {
 
 	/**
 	 * @param string $path
-	 * @param int $type self::LOCK_SHARED or self::LOCK_EXCLUSIVE
-	 * @throws \OCP\Lock\LockedException
+	 * @param int $type self::LOCK_SHARED or self::LOCK_EXCLUSIVE or self::LOCK_*_PERSISTENT
+	 * @param string $lockId - only relevant for self::LOCK_*_PERSISTENT
+	 * @param \DateInterval $ttl - only relevant for self::LOCK_*_PERSISTENT
+	 * @return
 	 * @since 8.1.0
 	 */
-	public function acquireLock($path, $type);
+	public function acquireLock($path, $type, $lockId = null, $ttl = null);
 
 	/**
 	 * @param string $path
 	 * @param int $type self::LOCK_SHARED or self::LOCK_EXCLUSIVE
+	 * @param string $lockId - only relevant for self::LOCK_*_PERSISTENT
 	 * @since 8.1.0
 	 */
-	public function releaseLock($path, $type);
+	public function releaseLock($path, $type, $lockId = null);
 
 	/**
 	 * Change the type of an existing lock
@@ -72,7 +85,8 @@ interface ILockingProvider {
 	public function changeLock($path, $targetType);
 
 	/**
-	 * release all lock acquired by this instance
+	 * release all lock of type self::LOCK_SHARED or self::LOCK_EXCLUSIVE
+	 * acquired by this instance. Persistent locks are not released
 	 * @since 8.1.0
 	 */
 	public function releaseAll();

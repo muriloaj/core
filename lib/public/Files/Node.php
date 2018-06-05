@@ -275,4 +275,5 @@ interface Node extends FileInfo {
 	 * @since 9.1.0
 	 */
 	public function unlock($type);
+
 }
