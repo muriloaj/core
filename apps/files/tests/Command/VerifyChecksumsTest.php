@@ -8,6 +8,10 @@ use OCA\Files\Command\VerifyChecksums;
 use OCP\IUser;
 use Symfony\Component\Console\Tester\CommandTester;
 use Test\TestCase;
+use OC\Files\Mount\MountPoint;
+use OC\Files\Filesystem;
+use OC\Files\Storage\FailedStorage;
+use Symfony\Component\Console\Output\OutputInterface;
 
 /**
  *
@@ -298,5 +302,108 @@ class VerifyChecksumsTest extends TestCase {
 		$this->cmd->execute(['-r' => null]);
 
 		$this->assertChecksumsAreCorrect($this->testFiles);
+	}
+
+	public function skippedStorageTypesProvider() {
+		return [
+			[\OCA\Files_Sharing\SharedStorage::class],
+			[FailedStorage::class],
+		];
+	}
+
+	/**
+	 * @dataProvider skippedStorageTypesProvider
+	 */
+	public function testSkipSharedStorage($storageClass) {
+		$storage = $this->createMock($storageClass);
+		$mount = new MountPoint($storage, '/dir');
+		Filesystem::getMountManager()->addMount($mount);
+
+		/** @var File $file1 */
+		$file1 = $this->testFiles[0]['file'];
+
+		$this->breakChecksum($file1);
+
+		$this->cmd->execute([]);
+
+		$output = $this->cmd->getDisplay();
+
+		$this->assertContains(self::BROKEN_CHECKSUM_STRING, $output);
+
+		$this->refreshFileInfo($file1);
+		$this->assertSame(
+			self::BROKEN_CHECKSUM_STRING,
+			$file1->getChecksum(),
+			'File on shared storage was skipped'
+		);
+	}
+
+	public function testSkipFilesNotOnDisk() {
+		/** @var File $file1 */
+		$file1 = $this->testFiles[0]['file'];
+
+		$this->breakChecksum($file1);
+
+		// delete file from disk directly but keep in cache
+		$file1->getStorage()->unlink($file1->getInternalPath());
+
+		$this->cmd->execute([], ['verbosity' => OutputInterface::VERBOSITY_VERBOSE]);
+
+		$output = $this->cmd->getDisplay();
+
+		$this->assertContains('Skipping ' . ltrim($file1->getPath(), '/'), $output);
+
+		$this->refreshFileInfo($file1);
+		$this->assertSame(
+			self::BROKEN_CHECKSUM_STRING,
+			$file1->getChecksum(),
+			'File missing from disk was skipped'
+		);
+	}
+
+	public function testSkipReadOnlyFiles() {
+		/** @var File $file1 */
+		$file1 = $this->testFiles[0]['file'];
+
+		$this->breakChecksum($file1);
+
+		// make file unreadable
+		$cache = $file1->getStorage()->getCache();
+		$cache->update($file1->getId(), ['permissions' => 0]);
+
+		$this->cmd->execute([], ['verbosity' => OutputInterface::VERBOSITY_VERBOSE]);
+
+		$output = $this->cmd->getDisplay();
+
+		$this->assertContains('Skipping ' . ltrim($file1->getPath(), '/'), $output);
+
+		$this->refreshFileInfo($file1);
+		$this->assertSame(
+			self::BROKEN_CHECKSUM_STRING,
+			$file1->getChecksum(),
+			'File not readable was skipped'
+		);
+	}
+
+	public function testSkipNoStoredChecksum() {
+		/** @var File $file1 */
+		$file1 = $this->testFiles[0]['file'];
+
+		// remove checksum
+		$cache = $file1->getStorage()->getCache();
+		$cache->update($file1->getId(), ['checksum' => '']);
+
+		$this->cmd->execute([], ['verbosity' => OutputInterface::VERBOSITY_VERBOSE]);
+
+		$output = $this->cmd->getDisplay();
+
+		$this->assertContains('Skipping ' . ltrim($file1->getPath(), '/'), $output);
+
+		$this->refreshFileInfo($file1);
+		$this->assertSame(
+			'',
+			$file1->getChecksum(),
+			'File not readable was skipped'
+		);
 	}
 }

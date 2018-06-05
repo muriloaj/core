@@ -200,7 +200,7 @@ class VerifyChecksums extends Command {
 	 * @return bool
 	 */
 	private static function fileExistsOnDisk(Node $node) {
-		$statResult = $node->stat();
+		$statResult = @$node->stat();
 		return \is_array($statResult) && isset($statResult['size']) && $statResult['size'] !== false;
 	}
 
